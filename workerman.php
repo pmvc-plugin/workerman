@@ -93,16 +93,22 @@ class workerman extends \PMVC\PlugIn
         Channel\Client::connect($this['ip'], $this['channelPort']);
         Channel\Client::on($ws->workerId, function($e) use ($ws) {
             $to = $e['to'];
-            $data = $e['data'];
+            $message = $e['data'];
             if (isset($ws->connections[$to])) {
                 $toConn = $ws->connections[$to];
-                $this->send($toConn, $data);
+                $this->send($toConn, [
+                    'type'=>'message',
+                    'message'=>$message
+                ]);
             }
         });
         Channel\Client::on('all', function($e) use ($ws) {
-            $data = $e['data'];
+            $message = $e['data'];
             foreach ($ws->connections as $conn) {
-                $this->send($conn, $data);
+                $this->send($conn, [
+                    'type'=>'message',
+                    'message'=>$message
+                ]);
             }
         });
     }
