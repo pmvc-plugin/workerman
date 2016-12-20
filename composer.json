@@ -13,7 +13,8 @@
     ],
     "require": {
         "pmvc/pmvc": "*",
-        "workerman/workerman": "*"
+        "workerman/workerman": "*",
+        "workerman/channel": "*"
     },
     "minimum-stability": "dev"
 }
