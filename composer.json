@@ -1,0 +1,19 @@
+{
+    "name": "pmvc-plugin/workerman",
+    "description": "Workerman",
+    "type": "library",
+    "homepage": "https://github.com/pmvc/pmvc",
+    "keywords": ["socket", "pmvc", "plug-in"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Hill",
+            "email": "hill@kimo.com"
+        }
+    ],
+    "require": {
+        "pmvc/pmvc": "*",
+        "workerman/workerman": "*"
+    },
+    "minimum-stability": "dev"
+}
