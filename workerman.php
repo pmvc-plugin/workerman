@@ -47,21 +47,46 @@ class workerman extends \PMVC\PlugIn
         }
     }
 
-    public function send($conn, $data)
+    public function send($conn, $data, array $params=[])
     {
-        $conn->send(json_encode(['data'=>$data]));
+        $conn->send(json_encode(array_replace(
+            ['data'=>$data],
+            $params
+        )));
+    }
+
+    public function getToken($conn)
+    {
+        $workerId = \PMVC\value($conn, ['worker','workerId']);
+        $connectionId = \PMVC\value($conn, ['id']);
+        $now = time();
+        $token = $this->hash(
+            (string)$workerId,
+            (string)$connectionId,
+            (string)$now
+        ).','.$now;
+        $conn->token = $token;
+
+        $this->send($conn, [
+            'webSocketConnId'=> $connectionId,
+            'webSocketToken'=> $token,
+        ], ['type'=>'auth']);
+    }
+
+    public function verifyToken($tokens, $toWorkerId, $toConnectionId)
+    {
+         list($token, $now) = explode(',', $tokens);
+         $bool = $token === (string)$this->hash(
+            (string)$toWorkerId,
+            (string)$toConnectionId,
+            (string)$now
+        );
+        return $bool;
     }
 
     public function onConnect ($conn)
     {
-        $workerId = \PMVC\value($conn, ['worker','workerId']);
-        $connectionId = \PMVC\value($conn, ['id']);
-        $token = $this->hash((string)$workerId,(string)$connectionId);
-        $this->send($conn, [
-            'id'=> $connectionId,
-            'token'=> $token,
-            'type'=> 'auth'
-        ]);
+        $this->getToken($conn);
         return $this->go(__FUNCTION__, [$conn]);
     }
 
@@ -93,22 +118,18 @@ class workerman extends \PMVC\PlugIn
         Channel\Client::connect($this['ip'], $this['channelPort']);
         Channel\Client::on($ws->workerId, function($e) use ($ws) {
             $to = $e['to'];
-            $message = $e['data'];
+            $data = $e['data'];
             if (isset($ws->connections[$to])) {
                 $toConn = $ws->connections[$to];
-                $this->send($toConn, [
-                    'type'=>'message',
-                    'message'=>$message
-                ]);
+                if (\PMVC\value($toConn,['token']) === $e['token']) { 
+                    $this->send($toConn, $data, ['type'=>'message']);
+                }
             }
         });
         Channel\Client::on('all', function($e) use ($ws) {
-            $message = $e['data'];
+            $data = $e['data'];
             foreach ($ws->connections as $conn) {
-                $this->send($conn, [
-                    'type'=>'message',
-                    'message'=>$message
-                ]);
+                $this->send($conn, $data, ['type'=>'message']);
             }
         });
     }
@@ -145,10 +166,11 @@ class workerman extends \PMVC\PlugIn
             Channel\Client::publish( 'all', [ 
                 'data' => $data
             ]);
-        } elseif ($token === (string)$this->hash((string)$toWorkerId,(string)$toConnectionId)) {
+        } elseif ($this->verifyToken($token, $toWorkerId, $toConnectionId)) {
             Channel\Client::publish( $toWorkerId, [ 
                 'to' => $toConnectionId,
-                'data' => $data
+                'data' => $data,
+                'token'=> $token
             ]);
         }
     }
