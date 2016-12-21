@@ -36,7 +36,7 @@ class workerman extends \PMVC\PlugIn
     public function go ($method,$params)
     {
         foreach ($this->_storage as $obj) {
-            if (method_exists($obj, 'isCallable')) {
+            if (is_callable([$obj, 'isCallable'])) {
                 $func = $obj->isCallable($method);
                 if ($func) {
                     call_user_func_array($func, $params);
@@ -63,7 +63,9 @@ class workerman extends \PMVC\PlugIn
         $token = $this->hash(
             (string)$workerId,
             (string)$connectionId,
-            (string)$now
+            (string)$now,
+            (string)$conn->getRemoteIp(),
+            (string)$conn->getRemotePort()
         ).','.$now;
         $conn->token = $token;
 
@@ -73,15 +75,22 @@ class workerman extends \PMVC\PlugIn
         ], ['type'=>'auth']);
     }
 
-    public function verifyToken($tokens, $toWorkerId, $toConnectionId)
+    public function verifyToken($tokens, $toWorkerId, $toConnectionId, $conn)
     {
          list($token, $now) = explode(',', $tokens);
          $bool = $token === (string)$this->hash(
             (string)$toWorkerId,
             (string)$toConnectionId,
-            (string)$now
+            (string)$now,
+            (string)$conn->getRemoteIp(),
+            (string)$conn->getRemotePort()
         );
         return $bool;
+    }
+
+    public function hash()
+    {
+        return \PMVC\hash($this['secret'], func_get_args());
     }
 
     public function onConnect ($conn)
@@ -119,9 +128,10 @@ class workerman extends \PMVC\PlugIn
         Channel\Client::on($ws->workerId, function($e) use ($ws) {
             $to = $e['to'];
             $data = $e['data'];
-            if (isset($ws->connections[$to])) {
-                $toConn = $ws->connections[$to];
-                if (\PMVC\value($toConn,['token']) === $e['token']) { 
+            $token = $e['token'];
+            $toConn = \PMVC\value($ws->connections, [$to]);
+            if ($toConn && \PMVC\value($toConn,['token']) === $token) {
+                if ( $this->verifyToken($token, $ws->workerId, $to, $toConn) ) {
                     $this->send($toConn, $data, ['type'=>'message']);
                 }
             }
@@ -160,24 +170,19 @@ class workerman extends \PMVC\PlugIn
             return;
         }
         $toConnectionId = \PMVC\value($_REQUEST, ['toConnectionId']);
-        $toWorkerId = \PMVC\value($this['ws'], ['workerId']);
+        $toWorkerId = \PMVC\value($this, ['ws','workerId']);
         $token = \PMVC\value($_REQUEST, ['token']); 
         if (empty($toConnectionId) && empty($token)) {
             Channel\Client::publish( 'all', [ 
                 'data' => $data
             ]);
-        } elseif ($this->verifyToken($token, $toWorkerId, $toConnectionId)) {
+        } else {
             Channel\Client::publish( $toWorkerId, [ 
                 'to' => $toConnectionId,
                 'data' => $data,
                 'token'=> $token
             ]);
         }
-    }
-
-    public function hash()
-    {
-        return \PMVC\hash($this['secret'], func_get_args());
     }
 
     public function process()
