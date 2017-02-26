@@ -10,6 +10,12 @@ Workerman / A websocket server
 ## Workerman
    * https://github.com/walkor/Workerman
 
+## How to use
+   * https://github.com/pmvc-plugin/workerman/blob/master/demo.php
+
+## Config
+VIEW_webSocketUrl='ws://xxx.com/ws'
+
 ## Install with Composer
 ### 1. Download composer
    * mkdir test_folder

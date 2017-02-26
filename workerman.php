@@ -13,7 +13,7 @@ class workerman extends \PMVC\PlugIn
 
     public function init()
     {
-        foreach ($this->defaultProps() as $k=>$v) {
+        foreach ($this->_defaultProps() as $k=>$v) {
             if (!isset($this[$k])) {
                 $this[$k] = $v;
             }
@@ -22,6 +22,7 @@ class workerman extends \PMVC\PlugIn
         $this->_initChannelServer();
         $this->_initHttpServer();
         $this->_initWsServer();
+        $this->_initPcntl();
     }
 
     public function attach ($class)
@@ -31,7 +32,6 @@ class workerman extends \PMVC\PlugIn
         }
         $this->_storage[] = $class; 
     }
-
 
     public function go ($method,$params)
     {
@@ -109,18 +109,6 @@ class workerman extends \PMVC\PlugIn
         return $this->go(__FUNCTION__, [$conn]);
     }
 
-    private function _initWsServer()
-    {
-        $host = 'websocket://'.$this['ip'].':'.$this['wsPort'];
-        $ws = new Worker($host);
-        $ws->count = $this['wsCount'];
-        $self = $this['this'];
-        $ws->onConnect = [$self, 'onConnect']; 
-        $ws->onMessage = [$self, 'onMessage'];
-        $ws->onClose = [$self, 'onClose'];
-        $ws->onWorkerStart = [$self, 'handleWsStart'];
-        $this['ws'] = $ws;
-    }
 
     public function handleWsStart($ws)
     {
@@ -142,24 +130,6 @@ class workerman extends \PMVC\PlugIn
                 $this->send($conn, $data, ['type'=>'message']);
             }
         });
-    }
-
-    private function _initChannelServer()
-    {
-        $this['channel'] = new Channel\Server($this['ip'], $this['channelPort']);
-    }
-
-    private function _initHttpServer()
-    {
-        $self = $this['this'];
-        $host = 'http://'.$this['ip'].':'.$this['httpPort'];
-        $http = new Worker($host);
-        $http->onWorkerStart = function ()
-        {
-            Channel\Client::connect($this['ip'], $this['channelPort']);
-        };
-        $http->onMessage = [$self, 'handleHttpGetMessage'];
-        $this['http'] = $http;
     }
 
     public function handleHttpGetMessage($conn, $data)
@@ -187,10 +157,58 @@ class workerman extends \PMVC\PlugIn
 
     public function process()
     {
+        Worker::$pidFile = $this['pid'];
         Worker::runAll();
     }
 
-    public function defaultProps()
+    public function stop()
+    {
+        Worker::stopAll();
+    }
+
+    private function _initChannelServer()
+    {
+        $this['channel'] = new Channel\Server($this['ip'], $this['channelPort']);
+    }
+
+    private function _initHttpServer()
+    {
+        $self = $this['this'];
+        $host = 'http://'.$this['ip'].':'.$this['httpPort'];
+        $http = new Worker($host);
+        $http->onWorkerStart = function ()
+        {
+            Channel\Client::connect($this['ip'], $this['channelPort']);
+        };
+        $http->onMessage = [$self, 'handleHttpGetMessage'];
+        $this['http'] = $http;
+    }
+
+    private function _initWsServer()
+    {
+        $host = 'websocket://'.$this['ip'].':'.$this['wsPort'];
+        $ws = new Worker($host);
+        $ws->count = $this['wsCount'];
+        $self = $this['this'];
+        $ws->onConnect = [$self, 'onConnect']; 
+        $ws->onMessage = [$self, 'onMessage'];
+        $ws->onClose = [$self, 'onClose'];
+        $ws->onWorkerStart = [$self, 'handleWsStart'];
+        $this['ws'] = $ws;
+    }
+
+    private function _initPcntl()
+    {
+        if (function_exists('pcntl_signal')) {
+            return;
+        }
+        $arr = [SIGTERM, SIGINT, SIGHUP];
+        foreach ($arr as $sign) {
+            pcntl_signal($sign, [$this,'stop']);
+        }
+    }
+
+    private function _defaultProps()
     {
         return [
             'channelPort' => 8886,
@@ -198,7 +216,8 @@ class workerman extends \PMVC\PlugIn
             'wsPort' => 8888,
             'wsCount' => 6,
             'ip'=> '0.0.0.0',
-            'secret'=> 'some-secret'
+            'secret'=> 'some-secret',
+            'pid'=>'/dev/shm/workerman.pid'
         ];
     }
 }
