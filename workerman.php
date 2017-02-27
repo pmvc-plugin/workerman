@@ -22,7 +22,6 @@ class workerman extends \PMVC\PlugIn
         $this->_initChannelServer();
         $this->_initHttpServer();
         $this->_initWsServer();
-        $this->_initPcntl();
     }
 
     public function attach ($class)
@@ -45,6 +44,19 @@ class workerman extends \PMVC\PlugIn
                 call_user_func_array([$obj, $method], $params);
             }
         }
+    }
+
+    public function sendHttp($data)
+    {
+        $curl = \PMVC\plug('curl');
+        $host = 'http://'.$this['ip'].':'.$this['httpPort'];
+        \PMVC\d( json_encode($data));
+        $curl->post($host, function($r){
+           \PMVC\d($r); 
+        }, [
+            'data'=>$data
+        ]);
+        $curl->process();
     }
 
     public function send($conn, $data, array $params=[])
@@ -135,13 +147,13 @@ class workerman extends \PMVC\PlugIn
     public function handleHttpGetMessage($conn, $data)
     {
         $conn->send('ok');
-        $data = \PMVC\fromJson(\PMVC\value($_REQUEST, ['data']));
+        $data = \PMVC\fromJson(\PMVC\get($_REQUEST, 'data'));
         if (empty($data)) {
             return;
         }
-        $toConnectionId = \PMVC\value($_REQUEST, ['toConnectionId']);
+        $toConnectionId = \PMVC\get($_REQUEST, 'toConnectionId');
         $toWorkerId = \PMVC\value($this, ['ws','workerId']);
-        $token = \PMVC\value($_REQUEST, ['token']); 
+        $token = \PMVC\get($_REQUEST, 'token'); 
         if (empty($toConnectionId) && empty($token)) {
             Channel\Client::publish( 'all', [ 
                 'data' => $data
@@ -197,16 +209,6 @@ class workerman extends \PMVC\PlugIn
         $this['ws'] = $ws;
     }
 
-    private function _initPcntl()
-    {
-        if (function_exists('pcntl_signal')) {
-            return;
-        }
-        $arr = [SIGTERM, SIGINT, SIGHUP];
-        foreach ($arr as $sign) {
-            pcntl_signal($sign, [$this,'stop']);
-        }
-    }
 
     private function _defaultProps()
     {
