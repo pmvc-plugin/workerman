@@ -2,6 +2,7 @@
 namespace PMVC\PlugIn\workerman;
 
 use Workerman\Worker;
+use Workerman\Connection\TcpConnection;
 use Channel;
 use SplObjectStorage;
 
@@ -50,12 +51,16 @@ class workerman extends \PMVC\PlugIn
     {
         $curl = \PMVC\plug('curl');
         $host = 'http://'.$this['ip'].':'.$this['httpPort'];
-        \PMVC\d( json_encode($data));
-        $curl->post($host, function($r){
-           \PMVC\d($r); 
-        }, [
-            'data'=>$data
-        ]);
+        $curl->post($host,
+            function ($r) {
+                \PMVC\dev(function() use ($r){
+                    return \PMVC\fromJson($r->body);
+                }, 'http');
+            },
+            [
+                'data'=>json_encode($data)
+            ]
+        );
         $curl->process();
     }
 
@@ -146,8 +151,9 @@ class workerman extends \PMVC\PlugIn
 
     public function handleHttpGetMessage($conn, $data)
     {
-        $conn->send('ok');
-        $data = \PMVC\fromJson(\PMVC\get($_REQUEST, 'data'));
+        $json = \PMVC\get($_REQUEST, 'data');
+        $data = \PMVC\fromJson($json, true);
+        $conn->send(json_encode([array_keys($data), gettype($data)]));
         if (empty($data)) {
             return;
         }
