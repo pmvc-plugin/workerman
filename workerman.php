@@ -49,13 +49,17 @@ class workerman extends \PMVC\PlugIn
 
     public function sendHttp($data)
     {
+        $ip = $this['ip'];
+        if ('0.0.0.0' === $ip) {
+            $ip = '127.0.0.1';
+        }
         $curl = \PMVC\plug('curl');
-        $host = 'http://'.$this['ip'].':'.$this['httpPort'];
+        $host = 'http://'.$ip.':'.$this['httpPort'];
         $curl->post($host,
             function ($r) {
                 \PMVC\dev(function() use ($r){
                     return \PMVC\fromJson($r->body);
-                }, 'http');
+                }, 'workerman');
             },
             [
                 'data'=>json_encode($data)
@@ -230,7 +234,7 @@ class workerman extends \PMVC\PlugIn
             'httpPort' => 8887,
             'wsPort' => 8888,
             'wsCount' => 6,
-            'ip'=> '127.0.0.1',
+            'ip'=> '0.0.0.0',
             'secret'=> 'some-secret',
             'pid'=>'/dev/shm/workerman.pid'
         ];
