@@ -230,7 +230,7 @@ class workerman extends \PMVC\PlugIn
             'httpPort' => 8887,
             'wsPort' => 8888,
             'wsCount' => 6,
-            'ip'=> '0.0.0.0',
+            'ip'=> '127.0.0.1',
             'secret'=> 'some-secret',
             'pid'=>'/dev/shm/workerman.pid'
         ];
