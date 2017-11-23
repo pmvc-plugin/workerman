@@ -58,7 +58,7 @@ class workerman extends \PMVC\PlugIn
         $curl->post($host,
             function ($r) {
                 \PMVC\dev(function() use ($r){
-                    return \PMVC\fromJson($r->body);
+                    return \PMVC\fromJson($r->body, true);
                 }, 'workerman');
             },
             [
