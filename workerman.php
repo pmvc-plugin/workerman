@@ -125,7 +125,7 @@ class workerman extends \PMVC\PlugIn
         $data = \PMVC\fromJson($data);
         switch (\PMVC\get($data,'type')) {
             case 'ping':
-                $conn->send('ping');
+                $conn->send('pong');
                 break;
             default:
                 return $this->go(__FUNCTION__, [$conn, $data]);
