@@ -68,10 +68,10 @@ class workerman extends \PMVC\PlugIn
         $curl->process();
     }
 
-    public function send($conn, $data, array $params=[])
+    private function _sendWs($conn, $data, array $params=[])
     {
         $conn->send(json_encode(array_replace(
-            ['--realTimeData--'=>$data],
+            $data,
             $params
         )));
     }
@@ -90,10 +90,10 @@ class workerman extends \PMVC\PlugIn
         ).','.$now;
         $conn->token = $token;
 
-        $this->send($conn, [
+        $this->_sendWs($conn, [ 'auth' => [
             'webSocketConnId'=> $connectionId,
             'webSocketToken'=> $token,
-        ], ['type'=>'ws-auth']);
+        ] ], ['type'=>'ws-auth']);
     }
 
     public function verifyToken($tokens, $toWorkerId, $toConnectionId, $conn)
@@ -148,14 +148,14 @@ class workerman extends \PMVC\PlugIn
             $toConn = \PMVC\value($ws->connections, [$to]);
             if ($toConn && \PMVC\value($toConn,['token']) === $token) {
                 if ( $this->verifyToken($token, $ws->workerId, $to, $toConn) ) {
-                    $this->send($toConn, $data, ['type'=>'ws-message']);
+                    $this->_sendWs($toConn, $data, ['type'=>'ws-message']);
                 }
             }
         });
         Channel\Client::on('all', function($e) use ($ws) {
             $data = $e['data'];
             foreach ($ws->connections as $conn) {
-                $this->send($conn, $data, ['type'=>'ws-message']);
+                $this->_sendWs($conn, $data, ['type'=>'ws-message']);
             }
         });
     }
