@@ -17,6 +17,7 @@
     "workerman/channel": "*"
   },
   "require-dev": {
+    "pmvc-plugin/dev": "*",
     "pmvc-plugin/unit": "*"
   },
   "minimum-stability": "dev"
