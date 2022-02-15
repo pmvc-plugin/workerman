@@ -10,7 +10,7 @@ ${_INIT_CONFIG}[_CLASS] = __NAMESPACE__ . '\workerman';
 
 class workerman extends \PMVC\PlugIn
 {
-    public $_storage;
+    private $_storage;
 
     public function init()
     {
@@ -18,14 +18,6 @@ class workerman extends \PMVC\PlugIn
             if (!isset($this[$k])) {
                 $this[$k] = $v;
             }
-        }
-        if (!is_file($this['pid'])) {
-          $this->_storage = [];
-          $this->_initChannelServer();
-          $this->_initHttpServer();
-          $this->_initWsServer();
-        } else {
-          \PMVC\d('PID already exists. ['.$this['pid'].']');
         }
     }
 
@@ -62,7 +54,6 @@ class workerman extends \PMVC\PlugIn
         $curl->post(
             $host,
             function ($r) {
-              var_dump($r->body);
                 \PMVC\dev(function () use ($r) {
                     return \PMVC\fromJson($r->body, true);
                 }, 'workerman');
@@ -176,9 +167,11 @@ class workerman extends \PMVC\PlugIn
     public function handleHttpGetMessage($conn, $request)
     {
         $post = $request->post();
-        $data = \PMVC\get($post, "data");
+        $data = \PMVC\get($post, 'data');
         if (empty($data)) {
             return;
+        } else {
+            $data = \PMVC\fromJson($data, true);
         }
         $keys = is_array($data) ? array_keys($data) : $data;
         $conn->send(json_encode([$keys, gettype($data)]));
@@ -198,8 +191,21 @@ class workerman extends \PMVC\PlugIn
         }
     }
 
+    public function initServer()
+    {
+        if (!is_file($this['pid'])) {
+            $this->_storage = [];
+            $this->_initChannelServer();
+            $this->_initHttpServer();
+            $this->_initWsServer();
+        } else {
+            \PMVC\d('PID already exists. [' . $this['pid'] . ']');
+        }
+    }
+
     public function process()
     {
+        $this->initServer();
         Worker::$pidFile = $this['pid'];
         Worker::runAll();
     }

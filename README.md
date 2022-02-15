@@ -1,6 +1,6 @@
 [![Latest Stable Version](https://poser.pugx.org/pmvc-plugin/workerman/v/stable)](https://packagist.org/packages/pmvc-plugin/workerman) 
 [![Latest Unstable Version](https://poser.pugx.org/pmvc-plugin/workerman/v/unstable)](https://packagist.org/packages/pmvc-plugin/workerman) 
-[![Build Status](https://travis-ci.org/pmvc-plugin/workerman.svg?branch=master)](https://travis-ci.org/pmvc-plugin/workerman)
+[![CircleCI](https://circleci.com/gh/pmvc-plugin/workerman/tree/master.svg?style=svg)](https://circleci.com/gh/pmvc-plugin/workerman/tree/master)
 [![License](https://poser.pugx.org/pmvc-plugin/workerman/license)](https://packagist.org/packages/pmvc-plugin/workerman)
 [![Total Downloads](https://poser.pugx.org/pmvc-plugin/workerman/downloads)](https://packagist.org/packages/pmvc-plugin/workerman) 
 
