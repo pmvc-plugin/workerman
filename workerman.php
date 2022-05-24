@@ -251,10 +251,10 @@ class workerman extends \PMVC\PlugIn
     private function _defaultProps()
     {
         return [
-            'channelPort' => 8886,
-            'httpPort' => 8887,
-            'wsPort' => 8888,
-            'wsCount' => 6,
+            'channelPort' => 8086,
+            'httpPort' => 8087,
+            'wsPort' => 8088,
+            'wsCount' => 4,
             'ip' => '0.0.0.0',
             'secret' => 'some-secret',
             'pid' => '/dev/shm/workerman.pid',
